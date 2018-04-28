@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Spyder Editor
-
-This is a temporary script file.
+    To think about: returning sessions, over-writing existing contexts
+    Remove manifest at storage level and use discovery of contexts through search
 """        
 
 import json
@@ -14,6 +13,9 @@ import string
 import copy
 
 class StorageArea(object):
+    """
+    StorageArea containing one or more contexts. 
+    """
         
     def __init__(self, path: str):
         """
@@ -48,6 +50,10 @@ class StorageArea(object):
         self.openManifest()
         
     def storeManifest(self):
+        """
+        Write the manifest for the StorageArea
+        """
+        
         # Can we have this as an decorator?
         p = str(self.storagePath / 'storage.json')
         
@@ -57,6 +63,10 @@ class StorageArea(object):
             handle.close()
     
     def openManifest(self):
+        """
+        Open the manifest for the StorageArea
+        """
+        
         p = str(self.storagePath / 'storage.json')
         
         print("S: Loading manifest from " + p)
@@ -65,6 +75,9 @@ class StorageArea(object):
             handle.close()
             
     def addContext(self, name: str):
+        """
+        Add a context
+        """
         
         print("S: Adding context " + name)
               
@@ -92,6 +105,9 @@ class StorageArea(object):
         return self.context[name]
 
     def deleteContext(self, name: str):
+        """
+        Delete a context; removing underlying files
+        """
 
         print("S: Deleting context " + name)
 
@@ -116,9 +132,9 @@ class StorageArea(object):
         self.storeManifest()
    
     def addFileFromUrl(self, url: str, context: str, name: str):
-        '''
+        """
         Create a file from the contents of a URL
-        '''
+        """
                 
         # Get the relevant context info
         entry = self.manifest[context]
@@ -134,14 +150,21 @@ class StorageArea(object):
         return path
 
     def deleteFile(self, path: str):
-        '''
+        """
         Delete a file from storage
-        '''
+        """
         print("S: Deleting file " + str(path))
         if os.path.isfile(path):
             os.remove(path)
 
 class Context(object):
+    """
+    Context - a collection of files identified by their file names. The source
+    of these data is assumed to be accessible via HTTP
+    
+    To think about: returning sessions, over-writing existing contexts
+    Remove manifest at storage level and use discovery of contexts through search
+    """
 
     def __init__(self, name: str, files: dict, store: StorageArea):
         self.files = files
@@ -310,11 +333,8 @@ class Context(object):
         """
         print("C: Loading context from " + url)
         
-        f = urllib.urlopen(url)
-        data = f.read()
+        data = urllib.request.urlopen(url)
         self.files = json.load(data)
-
-
 
 def format_filename(s):
     valid_chars = "-_.() %s%s" % (string.ascii_letters, string.digits)
@@ -322,12 +342,15 @@ def format_filename(s):
     filename = filename.replace(' ','_')
     return filename
 
+def getUid():
+    return str(uuid.uuid4())[:8]
+
 if __name__ == "__main__":
 
     home = pathlib.Path.home()
     
     S = StorageArea(str(home / 'EuclidCache'))
-    testContext = str(uuid.uuid4())
+    testContext = getUid()
     C = S.addContext(testContext)
     C.add("http://vospace.esac.esa.int/vospace/sh/eb9834b594e8da89111147899d15c26dd5ecf9?dl=1","foo.pdf")
     C.get("foo.pdf")
@@ -335,7 +358,12 @@ if __name__ == "__main__":
     C.purgeFile("foo.pdf")
     S.deleteContext(testContext)
     
-    nextContext = str(uuid.uuid4())
+    nextContext = getUid()
     C = S.addContext(nextContext)
     C.importContext("foo.json")
+    C.refreshContext()
+
+    next2Context = getUid()
+    C = S.addContext(next2Context)
+    C.importContextFromUrl("http://vospace.esac.esa.int/vospace/sh/bfedf6f4f221ea34e880c2473da6a4d1d67b8ea1?dl=1")
     C.refreshContext()
