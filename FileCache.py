@@ -1,7 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-    To think about: returning sessions, over-writing existing contexts
-    Remove manifest at storage level and use discovery of contexts through search
+
+    To do/think about: 
+    - discovery of contexts on StorageArea open
+    - returning sessions, 
+    - over-writing existing contexts
+    - locking contexts
+    - many more tests
 """        
 
 import json
@@ -46,11 +51,16 @@ class StorageArea(object):
 
         # find existing Contexts and instantiate them Contexts
         # Get all directories
-        # For each directory
-        # Check if there is a manifest file inside
-        # if there is  manifest, instantiate the manifest
-                    
-    def addContext(self, name: str):
+        for subDir in self.storagePath.iterdir():
+            if subDir.is_dir():
+                desc = subDir / "desc.json"
+                if desc.is_file():
+                    print("S: Found Context in " + str(subDir))
+                    # TODO need dir name, not whole path
+                    ctxt = self.addContext(str(subDir.stem), False)
+                    ctxt.populateContext(str(desc))
+
+    def addContext(self, name: str, createDir: bool = True):
         """
         Add a context
         """
@@ -62,8 +72,9 @@ class StorageArea(object):
         
         # Create the directory
         dirPath = self.storagePath / saneName
-        print("S: Creating directory " + str(dirPath))
-        dirPath.mkdir();
+        if createDir is True:
+            print("S: Creating directory " + str(dirPath))
+            dirPath.mkdir();
 
         # Add to the dictionary        
         self.contexts[name] = Context(name, dirPath, self)
@@ -96,9 +107,6 @@ class Context(object):
     """
     Context - a collection of files identified by their file names. The source
     of these data is assumed to be accessible via HTTP
-    
-    To think about: returning sessions, over-writing existing contexts
-    Remove manifest at storage level and use discovery of contexts through search
     """
 
     def __init__(self, name: str, path: pathlib.Path, store: StorageArea):
@@ -257,7 +265,7 @@ class Context(object):
         Dump Context metadata as a file
         """        
         desc = str(self.path / "desc.json") 
-        print("C: Storing context in " + desc)
+        print("C: Writing descriptor in " + desc)
         with open(desc , 'w') as handle:
             handle.write(json.dumps(self.descriptor, indent=4))
             handle.close()
@@ -280,27 +288,30 @@ class Context(object):
             entry['loaded'] = False
             del entry['path']
         
-        print("C: Storing context in " + path)
+        print("C: Exporting context in " + path)
         with open(path, 'w') as handle:
             handle.write(json.dumps(desc, indent=4))
             handle.close()
 
-    def importContext(self, file: str):
+    def populateContext(self, file: str):
         """
         Populate the Context metadata from a file. The files will not be retrieved
+        - TODO what to do with existing content, merge or overwrite?
         """
-        print("C: Loading context from " + file)
+        print("C: Populating context from file: " + file)
         with open(file, 'r') as handle:
             self.descriptor = json.load(handle)
             handle.close()
             
         self.writeDescriptor()
 
-    def importContextFromUrl(self, url: str):
+    def populateContextFromUrl(self, url: str):
         """
         Populate the Context metadata from a file. The files will not be retrieved
+        - TODO what to do with existing content, merge or overwrite?
+        - TODO Can we merge this with populateContext(file)?
         """
-        print("C: Loading context from " + url)
+        print("C: Populating context from URL " + url)
         
         data = urllib.request.urlopen(url)
         self.descriptor = json.load(data)
@@ -319,6 +330,7 @@ if __name__ == "__main__":
 
     home = pathlib.Path.home()
     
+    print("Test 1")
     S = StorageArea(str(home / 'EuclidCache'))
     testContext = getUid()
     C = S.addContext(testContext)
@@ -328,12 +340,14 @@ if __name__ == "__main__":
     C.purgeFile("foo.pdf")
     S.deleteContext(testContext)
     
+    print("Test 2")
     nextContext = getUid()
     C = S.addContext(nextContext)
-    C.importContext("foo.json")
+    C.populateContext("export.json")
     C.refreshContext()
 
+    print("Test 3")
     next2Context = getUid()
     C = S.addContext(next2Context)
-    C.importContextFromUrl("http://vospace.esac.esa.int/vospace/sh/4807f490cec42f15d1574442881ccb1f1275bd?dl=1")
+    C.populateContextFromUrl("http://vospace.esac.esa.int/vospace/sh/4807f490cec42f15d1574442881ccb1f1275bd?dl=1")
     C.refreshContext()
