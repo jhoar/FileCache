@@ -2,9 +2,8 @@
 """
 
     To do/think about: 
-    - discovery of contexts on StorageArea open
-    - returning sessions, 
-    - over-writing existing contexts
+    - returning/conflicting sessions, 
+    - Multiple openings of the same StorageArea
     - locking contexts
     - many more tests
 """        
@@ -55,10 +54,9 @@ class StorageArea(object):
             if subDir.is_dir():
                 desc = subDir / "desc.json"
                 if desc.is_file():
-                    print("S: Found Context in " + str(subDir))
-                    # TODO need dir name, not whole path
+                    print("S: Found Context in " + str(subDir.stem))
                     ctxt = self.addContext(str(subDir.stem), False)
-                    ctxt.populateContext(str(desc))
+                    ctxt.loadContext(str(desc))
 
     def addContext(self, name: str, createDir: bool = True):
         """
@@ -101,7 +99,9 @@ class StorageArea(object):
         '''
         Output the available Contexts
         '''
-        pass
+        for name, ctxt in self.contexts.items():
+            print(name + " " + str(ctxt.path) + " " + ctxt.descriptor['author'])
+            ctxt.listFiles()
     
 class Context(object):
     """
@@ -111,10 +111,8 @@ class Context(object):
 
     def __init__(self, name: str, path: pathlib.Path, store: StorageArea):
         self.path = path
-        self.name = name
         self.store = store
-        self.author = getpass.getuser()
-        self.descriptor = {'name': self.name, 'author': self.author, 'files': {}}
+        self.descriptor = {'name': name, 'author': getpass.getuser(), 'files': {}}
 
     def add(self, url: str, filename: str):
         """
@@ -180,7 +178,7 @@ class Context(object):
         """
         Delete an item (including file) from the Context
         """
-        print("C: Delete " + filename + " from context " + self.name)
+        print("C: Delete " + filename + " from context " + self.descriptor['name'])
         
         if not self.store.writable:
             print("C: Storage in not writable, aborting")
@@ -206,7 +204,7 @@ class Context(object):
         """
         Retrieves retrieves any items in the Cache which are not in the storage
         """
-        print("C: Refreshing context " + self.name)
+        print("C: Refreshing context " + self.descriptor['name'])
 
         if not self.store.writable:
             print("C: Storage in not writable, aborting")
@@ -215,24 +213,21 @@ class Context(object):
         for filename, entry in self.descriptor['files'].items():
             self.get(filename)
 
-        # Update stored manifest
-        self.writeDescriptor()
+        # get() takes care of the descriptor
      
     def purgeContext(self):
         """
         Deletes all files in the Cache from local storage
         """
-        print("C: Purging context " + self.name)
+        print("C: Purging context " + self.descriptor['name'])
 
         if not self.store.writable:
             print("C: Storage in not writable, aborting")
             return
 
         for filename, entry in self.descriptor['files'].items(): 
+            # purgeFile() takes care of descriptor
             self.purgeFile(filename)
-
-        # Update stored manifest
-        self.writeDescriptor()
          
     def purgeFile(self, filename: str):
         """
@@ -293,30 +288,43 @@ class Context(object):
             handle.write(json.dumps(desc, indent=4))
             handle.close()
 
-    def populateContext(self, file: str):
+    def loadContext(self, location: str, merge: bool = False):
         """
-        Populate the Context metadata from a file. The files will not be retrieved
-        - TODO what to do with existing content, merge or overwrite?
+        Populate the Context metadata; determining from a file or URL. 
+        
+        The files will not be retrieved
+        
+        If merge is True, the existing list of files in the context will be merged with
+        the new files. If False, the new list will replace the existing list.
+        The existing context name and author will always be preserved         
         """
-        print("C: Populating context from file: " + file)
-        with open(file, 'r') as handle:
-            self.descriptor = json.load(handle)
-            handle.close()
+        
+        if urllib.parse.urlparse(location).scheme in ('http', 'https',):
+            print("C: Populating context from URL " + location)
+            data = urllib.request.urlopen(location)
+            newDesc = json.load(data)
+        else:
+            print("C: Populating context from file: " + location)
+            with open(location, 'r') as handle:
+                newDesc = json.load(handle)
+                handle.close()
+
+        if merge is True:
+            self.descriptor['files'].update(newDesc['files'])
+        else:
+            self.descriptor['author'] = newDesc['author']
+            self.descriptor['files'] = copy.deepcopy(newDesc['files'])
             
         self.writeDescriptor()
-
-    def populateContextFromUrl(self, url: str):
-        """
-        Populate the Context metadata from a file. The files will not be retrieved
-        - TODO what to do with existing content, merge or overwrite?
-        - TODO Can we merge this with populateContext(file)?
-        """
-        print("C: Populating context from URL " + url)
         
-        data = urllib.request.urlopen(url)
-        self.descriptor = json.load(data)
-        self.writeDescriptor()
-
+    def listFiles(self):
+        for name, files in self.descriptor['files'].items():
+            if files['loaded'] is True:
+                print("\t" + name + " " + files['url'] + " " + files['path'])
+            else:
+                print("\t" + name + " " + files['url'])
+                    
+                    
 def format_filename(s):
     valid_chars = "-_.() %s%s" % (string.ascii_letters, string.digits)
     filename = ''.join(c for c in s if c in valid_chars)
@@ -343,11 +351,14 @@ if __name__ == "__main__":
     print("Test 2")
     nextContext = getUid()
     C = S.addContext(nextContext)
-    C.populateContext("export.json")
+    C.loadContext("export.json")
     C.refreshContext()
 
     print("Test 3")
     next2Context = getUid()
     C = S.addContext(next2Context)
-    C.populateContextFromUrl("http://vospace.esac.esa.int/vospace/sh/4807f490cec42f15d1574442881ccb1f1275bd?dl=1")
+    C.loadContext("http://vospace.esac.esa.int/vospace/sh/4807f490cec42f15d1574442881ccb1f1275bd?dl=1")
     C.refreshContext()
+    
+    S.listContexts()
+    
