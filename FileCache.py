@@ -79,6 +79,7 @@ class StorageArea(object):
               
         return self.contexts[name]
 
+
     def deleteContext(self, name: str):
         """
         Delete a context; removing underlying files
@@ -281,7 +282,8 @@ class Context(object):
         desc = copy.deepcopy(self.descriptor)
         for filename, entry in desc['files'].items():
             entry['loaded'] = False
-            del entry['path']
+            if 'path' in entry:
+                del entry['path']
         
         print("C: Exporting context in " + path)
         with open(path, 'w') as handle:
@@ -359,6 +361,16 @@ if __name__ == "__main__":
     C = S.addContext(next2Context)
     C.loadContext("http://vospace.esac.esa.int/vospace/sh/4807f490cec42f15d1574442881ccb1f1275bd?dl=1")
     C.refreshContext()
+
+    print("Test 4")
+    next3Context = getUid()
+    C = S.addContext(next3Context) # Should check for existing dirs
+    C.add("http://vospace.esac.esa.int/vospace/sh/66ee2fc9964193fcc2984e35a25bdee14057f9?dl=1","ick906030_prev.fits")
+    C.exportContext("export1.json")
+    C.add("http://vospace.esac.esa.int/vospace/sp/e09e212133c2c61093431c4eb13ed16e7e31bb36?dl=2","1525190698647O-result.vot")
+    C.exportContext("export2.json")
+    S.deleteContext(next3Context) # Check for context
+
     
     S.listContexts()
     
