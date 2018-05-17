@@ -11,7 +11,6 @@
 import json
 import os
 import urllib
-import uuid
 import pathlib
 import string
 import copy
@@ -56,7 +55,7 @@ class StorageArea(object):
                 if desc.is_file():
                     print("S: Found Context in " + str(subDir.stem))
                     ctxt = self.addContext(str(subDir.stem), False)
-                    ctxt.loadContext(str(desc))
+                    ctxt.load(str(desc))
 
     def addContext(self, name: str, createDir: bool = True):
         """
@@ -64,16 +63,20 @@ class StorageArea(object):
         """
         
         print("S: Adding context " + name)
-              
+        
+        if(name in self.contexts):
+            print("S: Context " + name + " already loaded")
+            return self.contexts[name]
+        
         # Create a Path object     
         saneName = format_filename(name)
         
         # Create the directory
         dirPath = self.storagePath / saneName
         if createDir is True:
-            print("S: Creating directory " + str(dirPath))
-            dirPath.mkdir();
-
+            if not dirPath.exists():
+                dirPath.mkdir();
+                
         # Add to the dictionary        
         self.contexts[name] = Context(name, dirPath, self)
               
@@ -89,7 +92,7 @@ class StorageArea(object):
 
         # Eliminate data files and directory
         print("S: Purge context " + name)
-        self.contexts[name].purgeContext()
+        self.contexts[name].purge()
         self.contexts[name].deleteDescriptor()
         self.contexts[name].path.rmdir()
                 
@@ -115,7 +118,7 @@ class Context(object):
         self.store = store
         self.descriptor = {'name': name, 'author': getpass.getuser(), 'files': {}}
 
-    def add(self, url: str, filename: str):
+    def addFile(self, url: str, filename: str):
         """
         Add an item to the Context. It does not load it into storage.
         """
@@ -128,7 +131,7 @@ class Context(object):
          # Update stored desc
         self.writeDescriptor()
         
-    def get(self, filename: str, overwrite: bool = False):
+    def getFile(self, filename: str, overwrite: bool = False):
         """
         Return the filename of the file in the storage, retrieving data from a 
         remote location and storing it in the local storage if necessary. If overwrite is true
@@ -175,9 +178,9 @@ class Context(object):
         # Return file 
         return entry['path']
 
-    def delete(self, filename: str):
+    def deleteFile(self, filename: str):
         """
-        Delete an item (including file) from the Context
+        Delete an item from the Context
         """
         print("C: Delete " + filename + " from context " + self.descriptor['name'])
         
@@ -189,19 +192,20 @@ class Context(object):
         if self.descriptor['files'][filename] is None:
             print("C: File is not known in context, aborting")
             return
-        
-        path = self.descriptor['files'][filename]['path']
-        print("C: Deleting file " + path)
-        if os.path.isfile(path):
-            os.remove(path)
 
+        if 'path' in self.descriptor['files'][filename]:
+            path = self.descriptor['files'][filename]['path']
+            print("C: Deleting file " + path)
+            if os.path.isfile(path):
+                os.remove(path)
+                
         # Update dictionary
         del self.descriptor['files'][filename]
         
         # Write descriptor
         self.writeDescriptor()
 
-    def refreshContext(self):
+    def refresh(self):
         """
         Retrieves retrieves any items in the Cache which are not in the storage
         """
@@ -212,11 +216,11 @@ class Context(object):
             return
 
         for filename, entry in self.descriptor['files'].items():
-            self.get(filename)
+            self.getFile(filename)
 
         # get() takes care of the descriptor
      
-    def purgeContext(self):
+    def purge(self):
         """
         Deletes all files in the Cache from local storage
         """
@@ -227,35 +231,18 @@ class Context(object):
             return
 
         for filename, entry in self.descriptor['files'].items(): 
-            # purgeFile() takes care of descriptor
-            self.purgeFile(filename)
-         
-    def purgeFile(self, filename: str):
-        """
-        Delete a file in the Cache from local storage
-        """
-        print("C: Purging file " + filename + " from context")
-
-        if not self.store.writable:
-            print("C: Storage in not writable, aborting")
-            return
-
-        # If filename does not exist, abort
-        if self.descriptor['files'][filename] is None:
-            print("C: File is not known in Context, aborting")
-            return
-
-        entry = self.descriptor['files'][filename]
-        if entry['loaded'] is True:
-            print("C: File is loaded, deleting file " + entry['path'])
-            os.remove(entry['path'])
-            entry['loaded'] = False
-        else:
-            print("C: File is not loaded")
-
-        # Update stored manifest
+            if 'path' in entry:
+                path = entry['path']
+                print("C: Deleting file " + path)
+                if os.path.isfile(path):
+                    os.remove(path)
+                
+        # Update dictionary
+        self.descriptor['files'].clear()
+        
+        # Write descriptor
         self.writeDescriptor()
-
+         
     def writeDescriptor(self):     
         """
         Dump Context metadata as a file
@@ -275,7 +262,7 @@ class Context(object):
         print("C: Deleting descriptor " + str(desc))
         desc.unlink()
 
-    def exportContext(self, path: str):     
+    def export(self, path: str):     
         """
         Dump Context metadata as a file
         """
@@ -290,7 +277,7 @@ class Context(object):
             handle.write(json.dumps(desc, indent=4))
             handle.close()
 
-    def loadContext(self, location: str, merge: bool = False):
+    def load(self, location: str, merge: bool = False):
         """
         Populate the Context metadata; determining from a file or URL. 
         
@@ -333,44 +320,3 @@ def format_filename(s):
     filename = filename.replace(' ','_')
     return filename
 
-def getUid():
-    return str(uuid.uuid4())[:8]
-
-if __name__ == "__main__":
-
-    home = pathlib.Path.home()
-    
-    print("Test 1")
-    S = StorageArea(str(home / 'EuclidCache'))
-    testContext = getUid()
-    C = S.addContext(testContext)
-    C.add("http://vospace.esac.esa.int/vospace/sh/eb9834b594e8da89111147899d15c26dd5ecf9?dl=1","foo.pdf")
-    C.get("foo.pdf")
-    C.exportContext("export.json")
-    C.purgeFile("foo.pdf")
-    S.deleteContext(testContext)
-    
-    print("Test 2")
-    nextContext = getUid()
-    C = S.addContext(nextContext)
-    C.loadContext("export.json")
-    C.refreshContext()
-
-    print("Test 3")
-    next2Context = getUid()
-    C = S.addContext(next2Context)
-    C.loadContext("http://vospace.esac.esa.int/vospace/sh/4807f490cec42f15d1574442881ccb1f1275bd?dl=1")
-    C.refreshContext()
-
-    print("Test 4")
-    next3Context = getUid()
-    C = S.addContext(next3Context) # Should check for existing dirs
-    C.add("http://vospace.esac.esa.int/vospace/sh/66ee2fc9964193fcc2984e35a25bdee14057f9?dl=1","ick906030_prev.fits")
-    C.exportContext("export1.json")
-    C.add("http://vospace.esac.esa.int/vospace/sp/e09e212133c2c61093431c4eb13ed16e7e31bb36?dl=2","1525190698647O-result.vot")
-    C.exportContext("export2.json")
-    S.deleteContext(next3Context) # Check for context
-
-    
-    S.listContexts()
-    
