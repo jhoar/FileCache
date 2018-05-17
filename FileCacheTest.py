@@ -78,7 +78,11 @@ class TestStringMethods(unittest.TestCase):
     def test_deleteFileNotWritable(self):
         pass
 
-        
+    def test_testSimpleCache(self):
+        S = FileCache.SimpleCache()
+        S.load("http://vospace.esac.esa.int/vospace/sh/4807f490cec42f15d1574442881ccb1f1275bd?dl=1")
+        S.get("foo.pdf")
+    
     def test_test1(self):
         S = FileCache.StorageArea(str(self.home / 'EuclidCache'))
         testContext = getUid()
@@ -106,12 +110,12 @@ class TestStringMethods(unittest.TestCase):
     def test_test4(self):
         next3Context = getUid()
         S = FileCache.StorageArea(str(self.home / 'EuclidCache'))
-        C = S.addContext(next3Context) # Should check for existing dirs
+        C = S.addContext(next3Context) # TODO Should check for existing dirs
         C.addFile("http://vospace.esac.esa.int/vospace/sh/66ee2fc9964193fcc2984e35a25bdee14057f9?dl=1","ick906030_prev.fits")
         C.export("export1.json")
         C.addFile("http://vospace.esac.esa.int/vospace/sp/e09e212133c2c61093431c4eb13ed16e7e31bb36?dl=2","1525190698647O-result.vot")
         C.export("export2.json")
-        S.deleteContext(next3Context) # Check for context
+        S.deleteContext(next3Context) # TODO Check for context
 
     
     def test_test5(self):
@@ -119,8 +123,9 @@ class TestStringMethods(unittest.TestCase):
         S.listContexts()
     
     
-'''    
-        self.assertEqual('foo'.upper(), 'FOO')
+    
+'''
+      self.assertEqual('foo'.upper(), 'FOO')
 
     def test_isupper(self):
         self.assertTrue('FOO'.isupper())

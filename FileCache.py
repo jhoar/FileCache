@@ -15,6 +15,7 @@ import pathlib
 import string
 import copy
 import getpass
+import logging
 
 class StorageArea(object):
     """
@@ -28,14 +29,17 @@ class StorageArea(object):
         self.contexts = {}
         self.storagePath = None
         self.writable = True
+        logging.basicConfig(level=logging.INFO)
+        self.logger = logging.getLogger('FileCache')
+        self.logger.setLevel(logging.INFO)
                 
         # Convert string to a Path
-        print("S: " + "Opening " + path)
+        self.logger.debug("S: " + "Opening " + path)
         self.storagePath = pathlib.Path(path)
         
         # If directory does not exist, create it
         if not self.storagePath.exists():
-            print("S: " + str(self.storagePath) + " does not exist, creating")
+            self.logger.info("S: " + str(self.storagePath) + " does not exist, creating")
             self.storagePath.mkdir()    
         
         # Check that we are ready to proceed
@@ -44,7 +48,7 @@ class StorageArea(object):
 
         # Flag if this is not writable
         if os.access(path, os.W_OK) is not True:
-            print("S: " + str(self.storagePath) + " is not writable")
+            self.logger.debug("S: " + str(self.storagePath) + " is not writable")
             self.writable = False
 
         # find existing Contexts and instantiate them Contexts
@@ -53,7 +57,7 @@ class StorageArea(object):
             if subDir.is_dir():
                 desc = subDir / "desc.json"
                 if desc.is_file():
-                    print("S: Found Context in " + str(subDir.stem))
+                    self.logger.debug("S: Found Context in " + str(subDir.stem))
                     ctxt = self.addContext(str(subDir.stem), False)
                     ctxt.load(str(desc))
 
@@ -62,10 +66,10 @@ class StorageArea(object):
         Add a context
         """
         
-        print("S: Adding context " + name)
+        self.logger.debug("S: Adding context " + name)
         
         if(name in self.contexts):
-            print("S: Context " + name + " already loaded")
+            self.logger.debug("S: Context " + name + " already loaded")
             return self.contexts[name]
         
         # Create a Path object     
@@ -88,10 +92,10 @@ class StorageArea(object):
         Delete a context; removing underlying files
         """
 
-        print("S: Deleting context " + name)
+        self.logger.debug("S: Deleting context " + name)
 
         # Eliminate data files and directory
-        print("S: Purge context " + name)
+        self.logger.debug("S: Purge context " + name)
         self.contexts[name].purge()
         self.contexts[name].deleteDescriptor()
         self.contexts[name].path.rmdir()
@@ -123,7 +127,7 @@ class Context(object):
         Add an item to the Context. It does not load it into storage.
         """
         if not self.store.writable:
-            print("C: Storage in not writable, aborting")
+            self.store.logger.error("C: Storage in not writable, aborting")
             return
 
         self.descriptor['files'][filename] = {'url': url, 'loaded': False}
@@ -137,15 +141,15 @@ class Context(object):
         remote location and storing it in the local storage if necessary. If overwrite is true
         the file if retrieved irresepctively of whether it is in local storage
         """
-        print("C: Get file " + filename + " from storage")
+        self.store.logger.debug("C: Get file " + filename + " from storage")
 
         if not self.store.writable:
-            print("C: Storage in not writable, aborting")
+            self.store.logger.error("C: Storage in not writable, aborting")
             return None
 
         # If filename does not exist, abort
         if self.descriptor['files'][filename] is None:
-            print("C: File is not known in context, aborting")
+            self.store.logger.error("C: File is not known in context, aborting")
             return None
 
         entry = self.descriptor['files'][filename]
@@ -153,7 +157,7 @@ class Context(object):
             path = entry['path']
             # If we are not in overwrite mode and the file already exists in the cache, return file
             if overwrite is False and entry['loaded'] is True:
-                print("C: Found existing file " + path)
+                self.store.logger.debug("C: Found existing file " + path)
                 return path
         
         # Either the file is not loaded, or we insist on retrieving it
@@ -166,7 +170,7 @@ class Context(object):
         outfile = str(self.path / filename)
         
         # Retrieve data into file
-        print("C: Retrieving file " + str(outfile) + " from " + url)
+        self.store.logger.info("C: Creating file " + str(outfile) + " from " + url)
         urllib.request.urlretrieve(url, outfile)
 
         entry['path'] = outfile
@@ -182,20 +186,20 @@ class Context(object):
         """
         Delete an item from the Context
         """
-        print("C: Delete " + filename + " from context " + self.descriptor['name'])
+        self.store.logger.debug("C: Delete " + filename + " from context " + self.descriptor['name'])
         
         if not self.store.writable:
-            print("C: Storage in not writable, aborting")
+            self.store.logger.error("C: Storage in not writable, aborting")
             return
         
                 # If filename does not exist, abort
         if self.descriptor['files'][filename] is None:
-            print("C: File is not known in context, aborting")
+            self.store.logger.error("C: File is not known in context, aborting")
             return
 
         if 'path' in self.descriptor['files'][filename]:
             path = self.descriptor['files'][filename]['path']
-            print("C: Deleting file " + path)
+            self.store.logger.debug("C: Deleting file " + path)
             if os.path.isfile(path):
                 os.remove(path)
                 
@@ -209,10 +213,10 @@ class Context(object):
         """
         Retrieves retrieves any items in the Cache which are not in the storage
         """
-        print("C: Refreshing context " + self.descriptor['name'])
+        self.store.logger.debug("C: Refreshing context " + self.descriptor['name'])
 
         if not self.store.writable:
-            print("C: Storage in not writable, aborting")
+            self.store.logger.error("C: Storage in not writable, aborting")
             return
 
         for filename, entry in self.descriptor['files'].items():
@@ -224,16 +228,16 @@ class Context(object):
         """
         Deletes all files in the Cache from local storage
         """
-        print("C: Purging context " + self.descriptor['name'])
+        self.store.logger.debug("C: Purging context " + self.descriptor['name'])
 
         if not self.store.writable:
-            print("C: Storage in not writable, aborting")
+            self.store.logger.error("C: Storage in not writable, aborting")
             return
 
         for filename, entry in self.descriptor['files'].items(): 
             if 'path' in entry:
                 path = entry['path']
-                print("C: Deleting file " + path)
+                self.store.logger.debug("C: Deleting file " + path)
                 if os.path.isfile(path):
                     os.remove(path)
                 
@@ -248,7 +252,7 @@ class Context(object):
         Dump Context metadata as a file
         """        
         desc = str(self.path / "desc.json") 
-        print("C: Writing descriptor in " + desc)
+        self.store.logger.debug("C: Writing descriptor in " + desc)
         with open(desc , 'w') as handle:
             handle.write(json.dumps(self.descriptor, indent=4))
             handle.close()
@@ -259,7 +263,7 @@ class Context(object):
         Dump Context metadata as a file
         """        
         desc = self.path / "desc.json"
-        print("C: Deleting descriptor " + str(desc))
+        self.store.logger.debug("C: Deleting descriptor " + str(desc))
         desc.unlink()
 
     def export(self, path: str):     
@@ -272,7 +276,7 @@ class Context(object):
             if 'path' in entry:
                 del entry['path']
         
-        print("C: Exporting context in " + path)
+        self.store.logger.debug("C: Exporting context in " + path)
         with open(path, 'w') as handle:
             handle.write(json.dumps(desc, indent=4))
             handle.close()
@@ -289,14 +293,20 @@ class Context(object):
         """
         
         if urllib.parse.urlparse(location).scheme in ('http', 'https',):
-            print("C: Populating context from URL " + location)
+            self.store.logger.debug("C: Populating context from URL " + location)
             data = urllib.request.urlopen(location)
             newDesc = json.load(data)
         else:
-            print("C: Populating context from file: " + location)
+            self.store.logger.debug("C: Populating context from file: " + location)
             with open(location, 'r') as handle:
                 newDesc = json.load(handle)
                 handle.close()
+
+        # Remove existing loaded status or paths
+        for filename, entry in newDesc['files'].items():
+            entry['loaded'] = False
+            if 'path' in entry:
+                del entry['path']
 
         if merge is True:
             self.descriptor['files'].update(newDesc['files'])
@@ -313,7 +323,19 @@ class Context(object):
             else:
                 print("\t" + name + " " + files['url'])
                     
-                    
+class SimpleCache(object):
+    def __init__(self):
+        self.home = pathlib.Path.home()
+        self.store = StorageArea(str(self.home / 'EuclidCache'))
+        self.context = self.store.addContext('files', True)
+        
+    def load(self, url: str):
+        self.context.load(url, True)
+        self.context.refresh()
+    
+    def get(self, file: str):
+        return self.context.getFile(file)
+
 def format_filename(s):
     valid_chars = "-_.() %s%s" % (string.ascii_letters, string.digits)
     filename = ''.join(c for c in s if c in valid_chars)
