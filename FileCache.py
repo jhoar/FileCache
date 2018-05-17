@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-"""
+'''
 
     To do/think about: 
     - returning/conflicting sessions, 
     - Multiple openings of the same StorageArea
     - locking contexts
     - many more tests
-"""        
+'''        
 
 import json
 import os
@@ -18,17 +18,19 @@ import getpass
 import logging
 
 class StorageArea(object):
-    """
+    '''
     StorageArea containing one or more contexts. 
-    """
+    '''
         
     def __init__(self, path: str):
-        """
+        '''
         Opens a Storage area, creating the area if necessary 
-        """
+        '''        
         self.contexts = {}
         self.storagePath = None
         self.writable = True
+        
+        # set up logger
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger('FileCache')
         self.logger.setLevel(logging.INFO)
@@ -62,9 +64,9 @@ class StorageArea(object):
                     ctxt.load(str(desc))
 
     def addContext(self, name: str, createDir: bool = True):
-        """
+        '''
         Add a context
-        """
+        '''
         
         self.logger.debug("S: Adding context " + name)
         
@@ -88,9 +90,9 @@ class StorageArea(object):
 
 
     def deleteContext(self, name: str):
-        """
+        '''
         Delete a context; removing underlying files
-        """
+        '''
 
         self.logger.debug("S: Deleting context " + name)
 
@@ -112,10 +114,10 @@ class StorageArea(object):
             ctxt.listFiles()
     
 class Context(object):
-    """
+    '''
     Context - a collection of files identified by their file names. The source
     of these data is assumed to be accessible via HTTP
-    """
+    '''
 
     def __init__(self, name: str, path: pathlib.Path, store: StorageArea):
         self.path = path
@@ -136,11 +138,11 @@ class Context(object):
         self.writeDescriptor()
         
     def getFile(self, filename: str, overwrite: bool = False):
-        """
+        '''
         Return the filename of the file in the storage, retrieving data from a 
         remote location and storing it in the local storage if necessary. If overwrite is true
         the file if retrieved irresepctively of whether it is in local storage
-        """
+        '''
         self.store.logger.debug("C: Get file " + filename + " from storage")
 
         if not self.store.writable:
@@ -183,9 +185,9 @@ class Context(object):
         return entry['path']
 
     def deleteFile(self, filename: str):
-        """
+        '''
         Delete an item from the Context
-        """
+        '''
         self.store.logger.debug("C: Delete " + filename + " from context " + self.descriptor['name'])
         
         if not self.store.writable:
@@ -210,9 +212,9 @@ class Context(object):
         self.writeDescriptor()
 
     def refresh(self):
-        """
+        '''
         Retrieves retrieves any items in the Cache which are not in the storage
-        """
+        '''
         self.store.logger.debug("C: Refreshing context " + self.descriptor['name'])
 
         if not self.store.writable:
@@ -225,9 +227,9 @@ class Context(object):
         # get() takes care of the descriptor
      
     def purge(self):
-        """
+        '''
         Deletes all files in the Cache from local storage
-        """
+        '''
         self.store.logger.debug("C: Purging context " + self.descriptor['name'])
 
         if not self.store.writable:
@@ -248,28 +250,27 @@ class Context(object):
         self.writeDescriptor()
          
     def writeDescriptor(self):     
-        """
+        '''
         Dump Context metadata as a file
-        """        
+        '''        
         desc = str(self.path / "desc.json") 
         self.store.logger.debug("C: Writing descriptor in " + desc)
         with open(desc , 'w') as handle:
             handle.write(json.dumps(self.descriptor, indent=4))
             handle.close()
 
-
     def deleteDescriptor(self):     
-        """
-        Dump Context metadata as a file
-        """        
+        '''
+        Delete Context metadata file
+        '''        
         desc = self.path / "desc.json"
         self.store.logger.debug("C: Deleting descriptor " + str(desc))
         desc.unlink()
 
     def export(self, path: str):     
-        """
+        '''
         Dump Context metadata as a file
-        """
+        '''
         desc = copy.deepcopy(self.descriptor)
         for filename, entry in desc['files'].items():
             entry['loaded'] = False
@@ -282,7 +283,7 @@ class Context(object):
             handle.close()
 
     def load(self, location: str, merge: bool = False):
-        """
+        '''
         Populate the Context metadata; determining from a file or URL. 
         
         The files will not be retrieved
@@ -290,7 +291,7 @@ class Context(object):
         If merge is True, the existing list of files in the context will be merged with
         the new files. If False, the new list will replace the existing list.
         The existing context name and author will always be preserved         
-        """
+        '''
         
         if urllib.parse.urlparse(location).scheme in ('http', 'https',):
             self.store.logger.debug("C: Populating context from URL " + location)
@@ -317,6 +318,9 @@ class Context(object):
         self.writeDescriptor()
         
     def listFiles(self):
+        '''
+        List the files currently registered in the context
+        '''
         for name, files in self.descriptor['files'].items():
             if files['loaded'] is True:
                 print("\t" + name + " " + files['url'] + " " + files['path'])
@@ -324,6 +328,19 @@ class Context(object):
                 print("\t" + name + " " + files['url'])
                     
 class SimpleCache(object):
+    '''
+    Simple interface based around one context located a directory
+    EuclidCache located in the user's home directory. This is focused 
+    on loading resources as simply as possibly, e.g.:
+    
+        S = FileCache.SimpleCache()
+        S.load("http://vospace.esac.esa.int/vospace/sh/4807f490cec42f15d1574442881ccb1f1275bd?dl=1")
+        S.get("foo.pdf")
+        ...
+        S.destroy() # Clean up
+    
+    
+    '''
     def __init__(self):
         self.home = pathlib.Path.home()
         self.store = StorageArea(str(self.home / 'EuclidCache'))
@@ -335,6 +352,10 @@ class SimpleCache(object):
     
     def get(self, file: str):
         return self.context.getFile(file)
+    
+    def destroy(self):
+        self.context.purge()
+        self.store.deleteContext('files')
 
 def format_filename(s):
     valid_chars = "-_.() %s%s" % (string.ascii_letters, string.digits)
