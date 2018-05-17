@@ -11,6 +11,7 @@
 import json
 import os
 import urllib
+import urllib.request
 import pathlib
 import string
 import copy
@@ -352,6 +353,9 @@ class SimpleCache(object):
     
     def get(self, file: str):
         return self.context.getFile(file)
+
+    def files(self):
+        return self.context.listFiles()
     
     def destroy(self):
         self.context.purge()
