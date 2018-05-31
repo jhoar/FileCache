@@ -9,80 +9,237 @@ import unittest
 import pathlib
 import uuid
 import FileCache
+import inspect
+import shutil
+import os
+import stat
 
-class TestStringMethods(unittest.TestCase):
+class TestMethods(unittest.TestCase):
 
     def setUp(self):
         self.home = pathlib.Path.home()
 
     def test_initEmpty(self):
-        pass
+        print('test_initEmpty')
+        path = self.home / getUid()
+        S = FileCache.StorageArea(str(path))
+        self.assertTrue(S.storagePath.exists())
+        shutil.rmtree(str(path))
 
     def test_initNotEmpty(self):
-        pass
+        print('test_initNotEmpty')
+        # Setup
+        area = getUid()
+        path = self.home / area
+        S1 = FileCache.StorageArea(str(path))
+        ctxt = getUid()
+        S1.addContext(ctxt)
+
+        # Test
+        S2 = FileCache.StorageArea(str(path))
+        k = ctxt in S2.contexts
+        print(k)
+        self.assertTrue(k)
+        shutil.rmtree(str(path))
 
     def test_addContext(self):
-        pass
+        print('test_addContext')
+        area = getUid()
+        path = self.home / area
+        S1 = FileCache.StorageArea(str(path))
+        ctxt = getUid()
+        S1.addContext(ctxt)
+        cDir = S1.storagePath / ctxt
+        self.assertTrue(cDir.exists())
+        shutil.rmtree(str(path))
 
     def test_addContextDup(self):
-        pass
+        print('test_addContextDup')
+        area = getUid()
+        path = self.home / area
+        S1 = FileCache.StorageArea(str(path))
+        ctxt = getUid()
+        S1.addContext(ctxt)
+        S1.addContext(ctxt)
+        shutil.rmtree(str(path))
 
     def test_addContextDirExist(self):
-        pass
+        print('test_addContextDirExist')
+        area = getUid()
+        path = self.home / area
+        S1 = FileCache.StorageArea(str(path))
+        ctxt = getUid()
+        dupDir = path / ctxt
+        dupDir.mkdir()
+        S1.addContext(ctxt, True)
+        shutil.rmtree(str(path))
 
     def test_addContextNotWritable(self):
-        pass
+        print('test_addContextNotWritable')
+        area = getUid()
+        path = self.home / area
+        S1 = FileCache.StorageArea(str(path))
+        os.chmod(str(path), 0o0077)
+        ctxt = getUid()
+        S1.addContext(ctxt)
+        os.chmod(str(path), 0o0777)
+        shutil.rmtree(str(path))
 
     def test_delContext(self):
-        pass
+        print('test_delContext')
+        area = getUid()
+        path = self.home / area
+        S1 = FileCache.StorageArea(str(path))
+        ctxt = getUid()
+        S1.addContext(ctxt)
+        S1.deleteContext(ctxt)
+        shutil.rmtree(str(path))
 
     def test_delContextNoExist(self):
-        pass
+        print('test_delContextNoExist')
+        area = getUid()
+        path = self.home / area
+        S1 = FileCache.StorageArea(str(path))
+        ctxt = getUid()
+        S1.addContext(ctxt)
+        S1.deleteContext('foo')
+        shutil.rmtree(str(path))
 
     def test_delContextNotWritable(self):
-        pass
+        print('test_delContextNotWritable')
+        area = getUid()
+        path = self.home / area
+        S1 = FileCache.StorageArea(str(path))
+        ctxt = getUid()
+        S1.addContext(ctxt)
+        S1.writable = False
+        S1.deleteContext(ctxt)
+        shutil.rmtree(str(path))
 
-    def test_listContext(self):
-        pass
+    def test_listContexts(self):
+        print('test_listContexts')
+        area = getUid()
+        path = self.home / area
+        S1 = FileCache.StorageArea(str(path))
+        ctxt = getUid()
+        S1.addContext(ctxt)
+        S1.listContexts()
+        shutil.rmtree(str(path))
 
     def test_purge(self):
-        pass
+        print('test_purge')
+        area = getUid()
+        path = self.home / area
+        S1 = FileCache.StorageArea(str(path))
+        ctxt = getUid()
+        C1 = S1.addContext(ctxt)
+        C1.addFile("http://vospace.esac.esa.int/vospace/sh/eb9834b594e8da89111147899d15c26dd5ecf9?dl=1","foo.pdf")
+        C1.getFile("foo.pdf")
+        C1.purge()
 
     def test_purgeNotWritable(self):
-        pass
+        print('test_purgeNotWritable')
+        area = getUid()
+        path = self.home / area
+        S1 = FileCache.StorageArea(str(path))
+        ctxt = getUid()
+        C1 = S1.addContext(ctxt)
+        C1.addFile("http://vospace.esac.esa.int/vospace/sh/eb9834b594e8da89111147899d15c26dd5ecf9?dl=1","foo.pdf")
+        C1.getFile("foo.pdf")
+        S1.writable = False
+        C1.purge()
 
     def test_addFile(self):
-        pass
+        print('test_addFile')
+        area = getUid()
+        path = self.home / area
+        S1 = FileCache.StorageArea(str(path))
+        ctxt = getUid()
+        C1 = S1.addContext(ctxt)
+        C1.addFile("http://vospace.esac.esa.int/vospace/sh/eb9834b594e8da89111147899d15c26dd5ecf9?dl=1","foo.pdf")
 
     def test_addFileNotWritable(self):
-        pass
+        print('test_addFileNotWritable')
+        area = getUid()
+        path = self.home / area
+        S1 = FileCache.StorageArea(str(path))
+        ctxt = getUid()
+        C1 = S1.addContext(ctxt)
+        S1.writable = False
+        C1.addFile("http://vospace.esac.esa.int/vospace/sh/eb9834b594e8da89111147899d15c26dd5ecf9?dl=1","foo.pdf")
 
     def test_getFile(self):
-        pass
+        print('test_getFile')
+        area = getUid()
+        path = self.home / area
+        S1 = FileCache.StorageArea(str(path))
+        ctxt = getUid()
+        C1 = S1.addContext(ctxt)
+        C1.addFile("http://vospace.esac.esa.int/vospace/sh/eb9834b594e8da89111147899d15c26dd5ecf9?dl=1","foo.pdf")
+        C1.getFile("foo.pdf")
 
     def test_getFileNotWritable(self):
-        pass
+        print('test_getFileNotWritable')
+        area = getUid()
+        path = self.home / area
+        S1 = FileCache.StorageArea(str(path))
+        ctxt = getUid()
+        C1 = S1.addContext(ctxt)
+        C1.addFile("http://vospace.esac.esa.int/vospace/sh/eb9834b594e8da89111147899d15c26dd5ecf9?dl=1","foo.pdf")
+        S1.writable = False
+        C1.getFile("foo.pdf")
 
     def test_getFileNotExists(self):
-        pass
-
-    def test_getFileNoAccess(self):
-        pass
+        print('test_getFileNotExists')
+        area = getUid()
+        path = self.home / area
+        S1 = FileCache.StorageArea(str(path))
+        ctxt = getUid()
+        C1 = S1.addContext(ctxt)
+        C1.addFile("http://vospace.esac.esa.int/vospace/sh/blah","foo.pdf")
+        C1.getFile("foo.pdf")
 
     def test_deleteFile(self):
-        pass
+        print('test_deleteFile')
+        area = getUid()
+        path = self.home / area
+        S1 = FileCache.StorageArea(str(path))
+        ctxt = getUid()
+        C1 = S1.addContext(ctxt)
+        C1.addFile("http://vospace.esac.esa.int/vospace/sh/eb9834b594e8da89111147899d15c26dd5ecf9?dl=1","foo.pdf")
+        C1.getFile("foo.pdf")
+        C1.deleteFile("foo.pdf")
 
     def test_deleteFileNoExist(self):
-        pass
+        print('test_deleteFileNoExist')
+        print('test_deleteFile')
+        area = getUid()
+        path = self.home / area
+        S1 = FileCache.StorageArea(str(path))
+        ctxt = getUid()
+        C1 = S1.addContext(ctxt)
+        C1.addFile("http://vospace.esac.esa.int/vospace/sh/eb9834b594e8da89111147899d15c26dd5ecf9?dl=1","foo.pdf")
+        C1.getFile("foo.pdf")
+        C1.deleteFile("foo1.pdf")
 
     def test_deleteFileNotWritable(self):
-        pass
+        print('test_deleteFileNotWritable')
+        area = getUid()
+        path = self.home / area
+        S1 = FileCache.StorageArea(str(path))
+        ctxt = getUid()
+        C1 = S1.addContext(ctxt)
+        C1.addFile("http://vospace.esac.esa.int/vospace/sh/eb9834b594e8da89111147899d15c26dd5ecf9?dl=1","foo.pdf")
+        C1.getFile("foo.pdf")
+        S1.writable = False
+        C1.deleteFile("foo.pdf")
 
     def test_testSimpleCache(self):
+        print('test_initEmpty')
         S = FileCache.SimpleCache()
         S.load("http://vospace.esac.esa.int/vospace/sh/4807f490cec42f15d1574442881ccb1f1275bd?dl=1")
         S.get("foo.pdf")
-    
+
     def test_test1(self):
         S = FileCache.StorageArea(str(self.home / 'EuclidCache'))
         testContext = getUid()
@@ -92,7 +249,7 @@ class TestStringMethods(unittest.TestCase):
         C.export("export.json")
         C.deleteFile("foo.pdf")
         S.deleteContext(testContext)
-    
+
     def test_test2(self):
         nextContext = getUid()
         S = FileCache.StorageArea(str(self.home / 'EuclidCache'))
@@ -117,13 +274,11 @@ class TestStringMethods(unittest.TestCase):
         C.export("export2.json")
         S.deleteContext(next3Context) # TODO Check for context
 
-    
     def test_test5(self):
         S = FileCache.StorageArea(str(self.home / 'EuclidCache'))
         S.listContexts()
-    
-    
-    
+
+
 '''
       self.assertEqual('foo'.upper(), 'FOO')
 

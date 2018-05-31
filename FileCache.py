@@ -19,6 +19,7 @@ import string
 import copy
 import getpass
 import logging
+import shutil
 
 class StorageArea(object):
     '''
@@ -34,9 +35,9 @@ class StorageArea(object):
         self.writable = True
 
         # set up logger
-        logging.basicConfig(level=logging.DEBUG)
+        logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger('FileCache')
-        self.logger.setLevel(logging.DEBUG)
+        self.logger.setLevel(logging.INFO)
 
         # Convert string to a Path
         self.logger.debug("S: " + "Opening " + path)
@@ -84,9 +85,17 @@ class StorageArea(object):
 
         # Create the directory
         dirPath = self.storagePath / saneName
+
+        # Flag if this is not writable
+        if not self.writable:
+            self.logger.debug("S: " + str(dirPath) + " is not writable")
+
         if createDir is True:
             if not dirPath.exists():
                 dirPath.mkdir();
+            else:
+                self.logger.error("S: Context directory already exists")
+                # TODO Should we fail here?
 
         # Add to the dictionary
         self.contexts[name] = Context(name, dirPath, self)
@@ -101,11 +110,23 @@ class StorageArea(object):
 
         self.logger.debug("S: Deleting context " + name)
 
+        if not name in self.contexts:
+            self.logger.error("S: Context " + name + " does not exist")
+            return
+
+        ctxt = self.contexts[name]
+
+        # Flag if this is not writable
+        if not self.writable:
+            self.logger.debug("S: " + str(ctxt.path) + " is not writable")
+            return
+
         # Eliminate data files and directory
         self.logger.debug("S: Purge context " + name)
-        self.contexts[name].purge()
-        self.contexts[name].deleteDescriptor()
-        self.contexts[name].path.rmdir() # TODO What happens if files are still there?
+        ctxt.purge()
+        ctxt.deleteDescriptor()
+        self.logger.debug("S: Deleting context directory " + name)
+        shutil.rmtree(str(ctxt.path))
 
         # Remove the context from the list
         del self.contexts[name]
@@ -182,7 +203,11 @@ class Context(object):
 
         # Retrieve data into file
         self.store.logger.info("C: Creating file " + str(outfile) + " from " + url)
-        urllib.request.urlretrieve(url, outfile)
+        try:
+            urllib.request.urlretrieve(url, outfile)
+        except urllib.error.HTTPError as err:
+            self.store.logger.error("C: " + str(err))
+            return None
 
         entry['path'] = outfile
         entry['loaded'] = True
@@ -206,7 +231,7 @@ class Context(object):
             return
 
                 # If filename does not exist, abort
-        if self.descriptor['files'][filename] is None:
+        if not filename in self.descriptor['files'] is None:
             self.store.logger.error("C: File is not known in context, aborting")
             return
 
