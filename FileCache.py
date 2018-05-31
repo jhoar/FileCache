@@ -180,7 +180,7 @@ class Context(object):
             return None
 
         # If filename does not exist, abort
-        if self.descriptor['files'][filename] is None:
+        if not filename in self.descriptor['files']:
             self.store.logger.error("C: File is not known in context, aborting")
             return None
 
@@ -231,7 +231,7 @@ class Context(object):
             return
 
                 # If filename does not exist, abort
-        if not filename in self.descriptor['files'] is None:
+        if not filename in self.descriptor['files']:
             self.store.logger.error("C: File is not known in context, aborting")
             return
 
