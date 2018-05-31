@@ -136,6 +136,7 @@ class TestMethods(unittest.TestCase):
         C1.addFile("http://vospace.esac.esa.int/vospace/sh/eb9834b594e8da89111147899d15c26dd5ecf9?dl=1","foo.pdf")
         C1.getFile("foo.pdf")
         C1.purge()
+        shutil.rmtree(str(path))
 
     def test_purgeNotWritable(self):
         print('test_purgeNotWritable')
@@ -148,6 +149,7 @@ class TestMethods(unittest.TestCase):
         C1.getFile("foo.pdf")
         S1.writable = False
         C1.purge()
+        shutil.rmtree(str(path))
 
     def test_addFile(self):
         print('test_addFile')
@@ -157,6 +159,7 @@ class TestMethods(unittest.TestCase):
         ctxt = getUid()
         C1 = S1.addContext(ctxt)
         C1.addFile("http://vospace.esac.esa.int/vospace/sh/eb9834b594e8da89111147899d15c26dd5ecf9?dl=1","foo.pdf")
+        shutil.rmtree(str(path))
 
     def test_addFileNotWritable(self):
         print('test_addFileNotWritable')
@@ -167,6 +170,7 @@ class TestMethods(unittest.TestCase):
         C1 = S1.addContext(ctxt)
         S1.writable = False
         C1.addFile("http://vospace.esac.esa.int/vospace/sh/eb9834b594e8da89111147899d15c26dd5ecf9?dl=1","foo.pdf")
+        shutil.rmtree(str(path))
 
     def test_getFile(self):
         print('test_getFile')
@@ -177,6 +181,7 @@ class TestMethods(unittest.TestCase):
         C1 = S1.addContext(ctxt)
         C1.addFile("http://vospace.esac.esa.int/vospace/sh/eb9834b594e8da89111147899d15c26dd5ecf9?dl=1","foo.pdf")
         C1.getFile("foo.pdf")
+        shutil.rmtree(str(path))
 
     def test_getFileNotWritable(self):
         print('test_getFileNotWritable')
@@ -188,6 +193,7 @@ class TestMethods(unittest.TestCase):
         C1.addFile("http://vospace.esac.esa.int/vospace/sh/eb9834b594e8da89111147899d15c26dd5ecf9?dl=1","foo.pdf")
         S1.writable = False
         C1.getFile("foo.pdf")
+        shutil.rmtree(str(path))
 
     def test_getFileNotExists(self):
         print('test_getFileNotExists')
@@ -198,6 +204,7 @@ class TestMethods(unittest.TestCase):
         C1 = S1.addContext(ctxt)
         C1.addFile("http://vospace.esac.esa.int/vospace/sh/blah","foo.pdf")
         C1.getFile("foo.pdf")
+        shutil.rmtree(str(path))
 
     def test_deleteFile(self):
         print('test_deleteFile')
@@ -209,6 +216,7 @@ class TestMethods(unittest.TestCase):
         C1.addFile("http://vospace.esac.esa.int/vospace/sh/eb9834b594e8da89111147899d15c26dd5ecf9?dl=1","foo.pdf")
         C1.getFile("foo.pdf")
         C1.deleteFile("foo.pdf")
+        shutil.rmtree(str(path))
 
     def test_deleteFileNoExist(self):
         print('test_deleteFileNoExist')
@@ -221,6 +229,7 @@ class TestMethods(unittest.TestCase):
         C1.addFile("http://vospace.esac.esa.int/vospace/sh/eb9834b594e8da89111147899d15c26dd5ecf9?dl=1","foo.pdf")
         C1.getFile("foo.pdf")
         C1.deleteFile("foo1.pdf")
+        shutil.rmtree(str(path))
 
     def test_deleteFileNotWritable(self):
         print('test_deleteFileNotWritable')
@@ -233,12 +242,14 @@ class TestMethods(unittest.TestCase):
         C1.getFile("foo.pdf")
         S1.writable = False
         C1.deleteFile("foo.pdf")
+        shutil.rmtree(str(path))
 
     def test_testSimpleCache(self):
         print('test_initEmpty')
         S = FileCache.SimpleCache()
         S.load("http://vospace.esac.esa.int/vospace/sh/4807f490cec42f15d1574442881ccb1f1275bd?dl=1")
         S.get("foo.pdf")
+        shutil.rmtree(str(self.home / 'EuclidCache'))
 
     def test_test1(self):
         S = FileCache.StorageArea(str(self.home / 'EuclidCache'))
@@ -249,6 +260,7 @@ class TestMethods(unittest.TestCase):
         C.export("export.json")
         C.deleteFile("foo.pdf")
         S.deleteContext(testContext)
+        shutil.rmtree(str(self.home / 'EuclidCache'))
 
     def test_test2(self):
         nextContext = getUid()
@@ -256,6 +268,7 @@ class TestMethods(unittest.TestCase):
         C = S.addContext(nextContext)
         C.load("export.json")
         C.refresh()
+        shutil.rmtree(str(self.home / 'EuclidCache'))
 
     def test_test3(self):
         next2Context = getUid()
@@ -263,6 +276,7 @@ class TestMethods(unittest.TestCase):
         C = S.addContext(next2Context)
         C.load("http://vospace.esac.esa.int/vospace/sh/4807f490cec42f15d1574442881ccb1f1275bd?dl=1")
         C.refresh()
+        shutil.rmtree(str(self.home / 'EuclidCache'))
 
     def test_test4(self):
         next3Context = getUid()
@@ -273,10 +287,12 @@ class TestMethods(unittest.TestCase):
         C.addFile("http://vospace.esac.esa.int/vospace/sp/e09e212133c2c61093431c4eb13ed16e7e31bb36?dl=2","1525190698647O-result.vot")
         C.export("export2.json")
         S.deleteContext(next3Context) # TODO Check for context
+        shutil.rmtree(str(self.home / 'EuclidCache'))
 
     def test_test5(self):
         S = FileCache.StorageArea(str(self.home / 'EuclidCache'))
         S.listContexts()
+        shutil.rmtree(str(self.home / 'EuclidCache'))
 
 
 '''

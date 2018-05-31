@@ -6,8 +6,8 @@
     - Multiple openings of the same StorageArea
     - locking contexts
     - test getFile('file://')
-    - VOSpace as a real file system??
-    - many more tests
+    - Revise writable (use StorageArea.writable, vs in-line check with os.access())
+    - more tests
 '''
 
 import json
@@ -206,7 +206,7 @@ class Context(object):
         try:
             urllib.request.urlretrieve(url, outfile)
         except urllib.error.HTTPError as err:
-            self.store.logger.error("C: " + str(err))
+            self.store.logger.error("C: Failed to retrieve file, " + str(err))
             return None
 
         entry['path'] = outfile
