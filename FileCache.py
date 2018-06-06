@@ -35,9 +35,9 @@ class StorageArea(object):
         self.writable = True
 
         # set up logger
-        logging.basicConfig(level=logging.INFO)
+        logging.basicConfig()
         self.logger = logging.getLogger('FileCache')
-        self.logger.setLevel(logging.INFO)
+        self.logger.setLevel(logging.ERROR)
 
         # Convert string to a Path
         self.logger.debug("S: " + "Opening " + path)

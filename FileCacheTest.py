@@ -14,20 +14,18 @@ import shutil
 import os
 import stat
 
-class TestMethods(unittest.TestCase):
+class FileCacheTest(unittest.TestCase):
 
     def setUp(self):
         self.home = pathlib.Path.home()
 
     def test_initEmpty(self):
-        print('test_initEmpty')
         path = self.home / getUid()
         S = FileCache.StorageArea(str(path))
         self.assertTrue(S.storagePath.exists())
         shutil.rmtree(str(path))
 
     def test_initNotEmpty(self):
-        print('test_initNotEmpty')
         # Setup
         area = getUid()
         path = self.home / area
@@ -38,12 +36,10 @@ class TestMethods(unittest.TestCase):
         # Test
         S2 = FileCache.StorageArea(str(path))
         k = ctxt in S2.contexts
-        print(k)
         self.assertTrue(k)
         shutil.rmtree(str(path))
 
     def test_addContext(self):
-        print('test_addContext')
         area = getUid()
         path = self.home / area
         S1 = FileCache.StorageArea(str(path))
@@ -54,7 +50,6 @@ class TestMethods(unittest.TestCase):
         shutil.rmtree(str(path))
 
     def test_addContextDup(self):
-        print('test_addContextDup')
         area = getUid()
         path = self.home / area
         S1 = FileCache.StorageArea(str(path))
@@ -64,7 +59,6 @@ class TestMethods(unittest.TestCase):
         shutil.rmtree(str(path))
 
     def test_addContextDirExist(self):
-        print('test_addContextDirExist')
         area = getUid()
         path = self.home / area
         S1 = FileCache.StorageArea(str(path))
@@ -75,7 +69,6 @@ class TestMethods(unittest.TestCase):
         shutil.rmtree(str(path))
 
     def test_addContextNotWritable(self):
-        print('test_addContextNotWritable')
         area = getUid()
         path = self.home / area
         S1 = FileCache.StorageArea(str(path))
@@ -86,7 +79,6 @@ class TestMethods(unittest.TestCase):
         shutil.rmtree(str(path))
 
     def test_delContext(self):
-        print('test_delContext')
         area = getUid()
         path = self.home / area
         S1 = FileCache.StorageArea(str(path))
@@ -96,7 +88,6 @@ class TestMethods(unittest.TestCase):
         shutil.rmtree(str(path))
 
     def test_delContextNoExist(self):
-        print('test_delContextNoExist')
         area = getUid()
         path = self.home / area
         S1 = FileCache.StorageArea(str(path))
@@ -106,7 +97,6 @@ class TestMethods(unittest.TestCase):
         shutil.rmtree(str(path))
 
     def test_delContextNotWritable(self):
-        print('test_delContextNotWritable')
         area = getUid()
         path = self.home / area
         S1 = FileCache.StorageArea(str(path))
@@ -117,7 +107,6 @@ class TestMethods(unittest.TestCase):
         shutil.rmtree(str(path))
 
     def test_listContexts(self):
-        print('test_listContexts')
         area = getUid()
         path = self.home / area
         S1 = FileCache.StorageArea(str(path))
@@ -127,7 +116,6 @@ class TestMethods(unittest.TestCase):
         shutil.rmtree(str(path))
 
     def test_purge(self):
-        print('test_purge')
         area = getUid()
         path = self.home / area
         S1 = FileCache.StorageArea(str(path))
@@ -139,7 +127,6 @@ class TestMethods(unittest.TestCase):
         shutil.rmtree(str(path))
 
     def test_purgeNotWritable(self):
-        print('test_purgeNotWritable')
         area = getUid()
         path = self.home / area
         S1 = FileCache.StorageArea(str(path))
@@ -152,7 +139,6 @@ class TestMethods(unittest.TestCase):
         shutil.rmtree(str(path))
 
     def test_addFile(self):
-        print('test_addFile')
         area = getUid()
         path = self.home / area
         S1 = FileCache.StorageArea(str(path))
@@ -162,7 +148,6 @@ class TestMethods(unittest.TestCase):
         shutil.rmtree(str(path))
 
     def test_addFileNotWritable(self):
-        print('test_addFileNotWritable')
         area = getUid()
         path = self.home / area
         S1 = FileCache.StorageArea(str(path))
@@ -184,7 +169,6 @@ class TestMethods(unittest.TestCase):
         shutil.rmtree(str(path))
 
     def test_getFileNotWritable(self):
-        print('test_getFileNotWritable')
         area = getUid()
         path = self.home / area
         S1 = FileCache.StorageArea(str(path))
@@ -196,7 +180,6 @@ class TestMethods(unittest.TestCase):
         shutil.rmtree(str(path))
 
     def test_getFileNotExists(self):
-        print('test_getFileNotExists')
         area = getUid()
         path = self.home / area
         S1 = FileCache.StorageArea(str(path))
@@ -207,7 +190,6 @@ class TestMethods(unittest.TestCase):
         shutil.rmtree(str(path))
 
     def test_deleteFile(self):
-        print('test_deleteFile')
         area = getUid()
         path = self.home / area
         S1 = FileCache.StorageArea(str(path))
@@ -219,8 +201,6 @@ class TestMethods(unittest.TestCase):
         shutil.rmtree(str(path))
 
     def test_deleteFileNoExist(self):
-        print('test_deleteFileNoExist')
-        print('test_deleteFile')
         area = getUid()
         path = self.home / area
         S1 = FileCache.StorageArea(str(path))
@@ -232,7 +212,6 @@ class TestMethods(unittest.TestCase):
         shutil.rmtree(str(path))
 
     def test_deleteFileNotWritable(self):
-        print('test_deleteFileNotWritable')
         area = getUid()
         path = self.home / area
         S1 = FileCache.StorageArea(str(path))
@@ -245,7 +224,6 @@ class TestMethods(unittest.TestCase):
         shutil.rmtree(str(path))
 
     def test_testSimpleCache(self):
-        print('test_initEmpty')
         S = FileCache.SimpleCache()
         S.load("http://vospace.esac.esa.int/vospace/sh/4807f490cec42f15d1574442881ccb1f1275bd?dl=1")
         S.get("foo.pdf")
@@ -314,4 +292,5 @@ def getUid():
     return str(uuid.uuid4())[:8]
 
 if __name__ == '__main__':
-    unittest.main()
+    suite = unittest.TestLoader().loadTestsFromTestCase( FileCacheTest )
+    unittest.TextTestRunner(verbosity=2).run(suite)
