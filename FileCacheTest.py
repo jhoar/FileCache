@@ -14,6 +14,8 @@ import shutil
 import os
 import stat
 
+import FileCache
+
 class FileCacheTest(unittest.TestCase):
 
     def setUp(self):
