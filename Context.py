@@ -1,25 +1,11 @@
 # -*- coding: utf-8 -*-
-'''
-
-    To do/think about:
-    - returning/conflicting sessions,
-    - Multiple openings of the same StorageArea
-    - locking contexts
-    - test getFile('file://')
-    - Revise writable (use StorageArea.writable, vs in-line check with os.access())
-    - more tests
-'''
-
 import json
 import os
 import urllib
 import urllib.request
 import pathlib
-import string
 import copy
 import getpass
-import logging
-import shutil
 
 import StorageArea
 
